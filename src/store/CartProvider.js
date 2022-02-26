@@ -4,6 +4,7 @@ import CartContext from "./cart-context";
 const CART_ACTIONS = {
   addItem: "ADD_ITEM",
   removeItem: "REMOVE_ITEM",
+  clearCart: "CLEAR_CART",
 };
 const defaultCartState = {
   items: [],
@@ -18,13 +19,16 @@ const cartReducer = (state, action) => {
       const exitingIndex = state.items.findIndex(
         (i) => i.id === action.item.id
       );
+      // debugger;
       if (exitingIndex > -1) {
         const updateItem = state.items[exitingIndex];
-        updateItem.amount += 1;
+        updateItem.amount += action.amount || action.item.amount;
 
         updatedItems = [...state.items];
         updatedItems[exitingIndex] = updateItem;
-        updatedTotalAmount = state.totalAmount + action.item.price;
+        updatedTotalAmount =
+          state.totalAmount +
+          action.item.price * (action.amount || action.item.amount);
       } else {
         updatedItems = state.items.concat(action.item);
         updatedTotalAmount =
@@ -45,8 +49,10 @@ const cartReducer = (state, action) => {
         updatedItems[deletedItemIndex] = deletedItem;
       }
       updatedTotalAmount = state.totalAmount - deletedItem.price;
-
+      updatedTotalAmount = updatedTotalAmount < 0 ? 0 : updatedTotalAmount;
       return { items: updatedItems, totalAmount: updatedTotalAmount };
+    case CART_ACTIONS.clearCart:
+      return defaultCartState;
 
     default:
       return defaultCartState;
@@ -56,11 +62,15 @@ const cartReducer = (state, action) => {
 const CartProvider = (props) => {
   const [cartState, cartDispatch] = useReducer(cartReducer, defaultCartState);
 
-  const addItemToCartHandler = (item) => {
-    cartDispatch({ type: CART_ACTIONS.addItem, item: item });
+  const addItemToCartHandler = (item, amount) => {
+    cartDispatch({ type: CART_ACTIONS.addItem, item: item, amount: amount });
   };
   const removeItemFromCartHandler = (id) => {
     cartDispatch({ type: CART_ACTIONS.removeItem, id: id });
+  };
+
+  const clearCartHandler = () => {
+    cartDispatch({ type: CART_ACTIONS.clearCart });
   };
 
   const cartContext = {
@@ -68,6 +78,7 @@ const CartProvider = (props) => {
     totalAmount: cartState.totalAmount,
     addItem: addItemToCartHandler,
     removeItem: removeItemFromCartHandler,
+    clearCart: clearCartHandler,
   };
 
   return (
